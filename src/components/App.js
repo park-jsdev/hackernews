@@ -5,7 +5,9 @@ import LinkList from './LinkList'
 import CreateLink from './CreateLink'
 import Header from './Header'
 import { Switch, Route } from 'react-router-dom'
+import Login from './Login'
 
+// Router setup handled by react-router-dom
 class App extends Component {
   render() {
     return (
@@ -15,6 +17,7 @@ class App extends Component {
           <Switch>
             <Route exact path="/" component={LinkList} />
             <Route exact path="/create" component={CreateLink} />
+            <Route exact path="/login" component={Login} />
           </Switch>
         </div>
       </div>

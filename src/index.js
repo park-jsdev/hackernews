@@ -12,6 +12,8 @@ import { ApolloClient } from 'apollo-client'
 import { createHttpLink } from 'apollo-link-http'
 import { InMemoryCache } from 'apollo-cache-inmemory'
 import { BrowserRouter } from 'react-router-dom'
+import { setContext } from 'apollo-link-context'
+import { AUTH_TOKEN } from './constants'
 
 // GraphQL need 2 API layers in the backend. Prisma provides the database layer which offers CRUD operations
 // the 2nd layer is the application layer for business logic
@@ -26,9 +28,22 @@ const httpLink = createHttpLink({
   uri: 'http://localhost:4000'
 })
 
+// Configure Apollo with authentication token using middleware, implemented as an Apollo Link:
+// https://github.com/apollographql/apollo-link more info
+// This must go between httpLink and ApolloClient instantiations
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem(AUTH_TOKEN)
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : ''
+    }
+  }
+})
+
 // Instantiate ApolloClient by passing in httpLink and new instance of an InMemoryCache
 const client = new ApolloClient({
-  link: httpLink,
+  link: authLink.concat(httpLink), // make sure ApolloClient gets instantiated with correct link
   cache: new InMemoryCache()
 })
 
