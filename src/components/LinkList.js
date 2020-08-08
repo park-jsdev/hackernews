@@ -10,7 +10,7 @@ import gql from 'graphql-tag'
 //  1. write query as a JavaScript constant using the gql parser function
 //  2. use the <Query /> component passing the GraphQL query as pro
 //  3. access query results that gets injected into the component's render prop function
-const FEED_QUERY = gql`
+export const FEED_QUERY = gql`
   {
     feed {
       links {
@@ -18,6 +18,16 @@ const FEED_QUERY = gql`
         createdAt
         url
         description
+        postedBy {
+          id
+          name
+        }
+        votes {
+          id
+          user {
+            id
+          }
+        }
       }
     }
   }
@@ -44,15 +54,35 @@ class LinkList extends Component {
       
             const linksToRender = data.feed.links
       
+            // updated to render the Link components to also include the link's position
             return (
               <div>
-                {linksToRender.map(link => <Link key={link.id} link={link} />)}
+                {linksToRender.map((link, index) => (
+                  <Link key={link.id}
+                  link={link} 
+                  index={index}
+                  updateStoreAfterVote={this._updateCacheAfterVote}
+                   />
+                ))}
               </div>
             )
           }}
         </Query>
       )
   }
+  // read current state of the cached data for the FEED_QUERY from the store
+  // Now you’re retrieving the link that the user just voted for from that list. You’re also manipulating 
+  // that link by resetting its votes to the votes that were just returned by the server.
+  // Finally, you take the modified data and write it back into the store.
+  _updateCacheAfterVote = (store, createVote, linkId) => {
+    const data = store.readQuery({ query: FEED_QUERY })
+  
+    const votedLink = data.feed.links.find(link => link.id === linkId)
+    votedLink.votes = createVote.link.votes
+  
+    store.writeQuery({ query: FEED_QUERY, data })
+  }
+
 }
 
 export default LinkList
