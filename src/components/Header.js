@@ -1,7 +1,10 @@
+// Header will allow users to navigate between different parts of the app.
+
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
 import { withRouter } from 'react-router'
 
+// Renders two Link components to navigate between LinkList and CreateLink components.
 class Header extends Component {
   render() {
     return (

@@ -49,8 +49,14 @@ class CreateLink extends Component {
             placeholder="The URL for the link"
           />
         </div>
-        <Mutation mutation={POST_MUTATION} variables={{ description, url }}>
-            {postMutation => <button onClick={postMutation}>Submit</button>}
+        {/*Implement an automatic redirect from CreateLink component to LinkList component after a mutation is performed.
+        After mutation is performed, react-router-dom will navigate back to LinkList component that's accessible on root route '/' */}
+        <Mutation
+          mutation={POST_MUTATION}
+          variables={{ description, url }}
+          onCompleted={() => this.props.history.push('/')}
+        >
+          {postMutation => <button onClick={postMutation}>Submit</button>}
         </Mutation>
       </div>
     )

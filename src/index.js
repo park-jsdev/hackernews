@@ -1,3 +1,5 @@
+// index.js provides easy entry points for components. Simplifies imports.
+
 import React from 'react'
 import ReactDOM from 'react-dom'
 import './styles/index.css'
@@ -9,6 +11,7 @@ import { ApolloProvider } from 'react-apollo'
 import { ApolloClient } from 'apollo-client'
 import { createHttpLink } from 'apollo-link-http'
 import { InMemoryCache } from 'apollo-cache-inmemory'
+import { BrowserRouter } from 'react-router-dom'
 
 // GraphQL need 2 API layers in the backend. Prisma provides the database layer which offers CRUD operations
 // the 2nd layer is the application layer for business logic
@@ -32,9 +35,10 @@ const client = new ApolloClient({
 // Render the root component of React App, wrapped with higher order component ApolloProvider that gets passed the client
 // as a prop
 ReactDOM.render(
-  <ApolloProvider client={client}>
-    <App />
-  </ApolloProvider>,
+  <BrowserRouter>
+    <ApolloProvider client={client}>
+      <App />
+    </ApolloProvider>
+  </BrowserRouter>,
   document.getElementById('root')
 )
-serviceWorker.unregister();
