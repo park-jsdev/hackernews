@@ -2,6 +2,8 @@ import React, { Component } from 'react'
 import Link from './Link'
 import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
+import { LINKS_PER_PAGE } from '../constants'
+import React, { Component, Fragment } from 'react'
 
 // Stores the query. gql function is used to parse the plain string that contains the GraphQL code (GraphQl queries are a single string in JSON)
 // Use Apollo's render prop API to manage GraphQL data using components:
@@ -10,9 +12,14 @@ import gql from 'graphql-tag'
 //  1. write query as a JavaScript constant using the gql parser function
 //  2. use the <Query /> component passing the GraphQL query as pro
 //  3. access query results that gets injected into the component's render prop function
+// skip defines the offset where the query will start. if X is passed for this arg,
+// first X items of the list will not be included in the response.
+// first then defines the limit, or how many elements you want to load from
+// that list.
+// orderBy defines how the returned list should be sorted.
 export const FEED_QUERY = gql`
-  {
-    feed {
+  query FeedQuery($first: Int, $skip: Int, $orderBy: LinkOrderByInput) {
+    feed(first: $first, skip: $skip, orderBy: $orderBy) {
       links {
         id
         createdAt
@@ -29,6 +36,7 @@ export const FEED_QUERY = gql`
           }
         }
       }
+      count
     }
   }
 `
@@ -97,12 +105,23 @@ class LinkList extends Component {
   // Now you’re retrieving the link that the user just voted for from that list. You’re also manipulating 
   // that link by resetting its votes to the votes that were just returned by the server.
   // Finally, you take the modified data and write it back into the store.
+
+  // readQuery works similarly to query method on ApolloClient, but instead of making a call to the server,
+  // it will simply resolve the query against the local store.
   _updateCacheAfterVote = (store, createVote, linkId) => {
-    const data = store.readQuery({ query: FEED_QUERY })
+    const isNewPage = this.props.location.pathname.includes('new')
+    const page = parseInt(this.props.match.params.page, 10)
+  
+    const skip = isNewPage ? (page - 1) * LINKS_PER_PAGE : 0
+    const first = isNewPage ? LINKS_PER_PAGE : 100
+    const orderBy = isNewPage ? 'createdAt_DESC' : null
+    const data = store.readQuery({
+      query: FEED_QUERY,
+      variables: { first, skip, orderBy }
+    })
   
     const votedLink = data.feed.links.find(link => link.id === linkId)
     votedLink.votes = createVote.link.votes
-  
     store.writeQuery({ query: FEED_QUERY, data })
   }
 
@@ -143,9 +162,53 @@ class LinkList extends Component {
     })
   }
 
+  // Passing first, skip, orderBy values as variables based on the current page (this.props.match.params.page)
+  // which is used to calculate the chunk of links that you retrieve
+  // include ordering attribute createdAt_DESC for the new page to make sure the newest links are displayed first
+  _getQueryVariables = () => {
+    const isNewPage = this.props.location.pathname.includes('new')
+    const page = parseInt(this.props.match.params.page, 10)
+  
+    const skip = isNewPage ? (page - 1) * LINKS_PER_PAGE : 0
+    const first = isNewPage ? LINKS_PER_PAGE : 100
+    const orderBy = isNewPage ? 'createdAt_DESC' : null
+    return { first, skip, orderBy }
+  }
+
+  // for the newPage, simnply return all the links returned by the query.
+  _getLinksToRender = data => {
+    const isNewPage = this.props.location.pathname.includes('new')
+    if (isNewPage) {
+      return data.feed.links
+    }
+    const rankedLinks = data.feed.links.slice()
+    rankedLinks.sort((l1, l2) => l2.votes.length - l1.votes.length)
+    return rankedLinks
+  }
+
+  //  retrieving the current page from the url and implement a sanity check to make sure that it makes sense to paginate back or forth. 
+  // Then you simply calculate the next page and tell the router where to navigate next. The router will then reload the component with 
+  // a new page in the url that will be used to calculate the right chunk of links to load.
+
+  _nextPage = data => {
+    const page = parseInt(this.props.match.params.page, 10)
+    if (page <= data.feed.count / LINKS_PER_PAGE) {
+      const nextPage = page + 1
+      this.props.history.push(`/new/${nextPage}`)
+    }
+  }
+  
+  _previousPage = () => {
+    const page = parseInt(this.props.match.params.page, 10)
+    if (page > 1) {
+      const previousPage = page - 1
+      this.props.history.push(`/new/${previousPage}`)
+    }
+  }
+
   render() {
     return (
-        <Query query={FEED_QUERY}>
+      <Query query={FEED_QUERY} variables={this._getQueryVariables()}>
           {({ loading, error, data, subscribeToMore }) => {
             if (loading) return <div>Fetching</div>
             if (error) return <div>Error</div>
@@ -156,19 +219,34 @@ class LinkList extends Component {
             this._subscribeToNewLinks(subscribeToMore)
             this._subscribeToNewVotes(subscribeToMore)
       
-            const linksToRender = data.feed.links
+            const linksToRender = this._getLinksToRender(data)
+            const isNewPage = this.props.location.pathname.includes('new')
+            const pageIndex = this.props.match.params.page
+              ? (this.props.match.params.page - 1) * LINKS_PER_PAGE
+              : 0
       
             // updated to render the Link components to also include the link's position
             return (
-              <div>
+              <Fragment>
                 {linksToRender.map((link, index) => (
-                  <Link key={link.id}
-                  link={link} 
-                  index={index}
-                  updateStoreAfterVote={this._updateCacheAfterVote}
-                   />
+                  <Link
+                    key={link.id}
+                    link={link}
+                    index={index + pageIndex}
+                    updateStoreAfterVote={this._updateCacheAfterVote}
+                  />
                 ))}
-              </div>
+                {isNewPage && (
+                  <div className="flex ml4 mv3 gray">
+                    <div className="pointer mr2" onClick={this._previousPage}>
+                      Previous
+                    </div>
+                    <div className="pointer" onClick={() => this._nextPage(data)}>
+                      Next
+                    </div>
+                  </div>
+                )}
+              </Fragment>
             )
           }}
         </Query>

@@ -2,3 +2,4 @@
 // https://www.rdegges.com/2018/please-stop-using-local-storage/
 
 export const AUTH_TOKEN = 'auth-token'
+export const LINKS_PER_PAGE = 5
