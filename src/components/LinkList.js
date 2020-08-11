@@ -1,9 +1,8 @@
-import React, { Component } from 'react'
+import React, { Component, Fragment } from 'react'
 import Link from './Link'
 import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import { LINKS_PER_PAGE } from '../constants'
-import React, { Component, Fragment } from 'react'
 
 // Stores the query. gql function is used to parse the plain string that contains the GraphQL code (GraphQl queries are a single string in JSON)
 // Use Apollo's render prop API to manage GraphQL data using components:

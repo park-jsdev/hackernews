@@ -1,17 +1,6 @@
-scalar DateTime
-
 type Query {
   info: String!
-  feed(filter: String, skip: Int, first: Int, orderBy: LinkOrderByInput): Feed!
-}
-
-enum LinkOrderByInput {
-  description_ASC
-  description_DESC
-  url_ASC
-  url_DESC
-  createdAt_ASC
-  createdAt_DESC
+  feed(filter: String, skip: Int, take: Int, orderBy: LinkOrderByInput): Feed!
 }
 
 type Feed {
@@ -23,12 +12,15 @@ type Mutation {
   post(url: String!, description: String!): Link!
   signup(email: String!, password: String!, name: String!): AuthPayload
   login(email: String!, password: String!): AuthPayload
-  vote(linkId: ID!): Vote!
+  vote(linkId: ID!): Vote
 }
 
-type Subscription {
-  newLink: Link
-  newVote: Vote
+type Link {
+  id: ID!
+  description: String!
+  url: String!
+  postedBy: User
+  votes: [Vote!]!
 }
 
 type AuthPayload {
@@ -43,17 +35,24 @@ type User {
   links: [Link!]!
 }
 
-type Link {
-  id: ID!
-  createdAt: DateTime!
-  description: String!
-  url: String!
-  postedBy: User
-  votes: [Vote!]!
+type Subscription {
+  newLink: Link
+  newVote: Vote
 }
 
 type Vote {
   id: ID!
   link: Link!
   user: User!
+}
+
+input LinkOrderByInput {
+  description: Sort
+  url: Sort
+  createdAt: Sort
+}
+
+enum Sort {
+  asc
+  desc
 }
